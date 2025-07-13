@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
                 val firstName = sharedPreferences.getString("firstName", null)
                 val lastName = sharedPreferences.getString("lastName", null)
                 val email = sharedPreferences.getString("email", null)
+
                 val startDestination = if (firstName != null && lastName != null && email != null) "home" else "profile"
 
                 NavHost(navController = navController, startDestination = startDestination) {
