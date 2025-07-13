@@ -32,10 +32,15 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,9 +65,14 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavHostController) {
     val focusManager = LocalFocusManager.current
+
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedItem by remember { mutableStateOf<Pair<String, String>?>(null) } // name, desc
+    val scope = rememberCoroutineScope()
 
     Box(
         modifier = Modifier
@@ -143,11 +153,33 @@ fun HomeScreen(navController: NavHostController) {
                         name = info.first,
                         description = info.second,
                         price = info.third,
-                        imageRes = imageRes
+                        imageRes = imageRes,
+                        onClick = {
+                            selectedItem = Pair(info.first, info.second)
+                            scope.launch { sheetState.show() }
+                        }
                     )
                 }
             }
 
+        }
+    }
+
+    if (selectedItem != null) {
+        ModalBottomSheet(
+            onDismissRequest = { selectedItem = null },
+            sheetState = sheetState,
+            modifier = Modifier.fillMaxWidth(),
+            containerColor = Color.White,
+            scrimColor = Color.Black.copy(alpha = 0.5f),
+            dragHandle = { } // You can customize drag handle or leave it empty
+        ) {
+            MenuItemDetailsModal(
+                name = selectedItem!!.first,
+                description = selectedItem!!.second,
+                imageRes = R.drawable.hero, // or pass dynamically
+                onDismiss = { selectedItem = null }
+            )
         }
     }
 }
@@ -157,12 +189,14 @@ fun MenuItemCard(
     name: String,
     description: String,
     price: String,
-    imageRes: Int
+    imageRes: Int,
+    onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(16.dp)
+            .clickable{onClick()},
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
@@ -205,6 +239,66 @@ fun MenuItemCard(
         )
     }
 }
+
+@Composable
+fun MenuItemDetailsModal(
+    name: String,
+    description: String,
+    imageRes: Int,
+    onDismiss: () -> Unit
+) {
+    var quantity by remember { mutableStateOf(1) }
+
+    Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column {
+
+            // Large image
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(name, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+
+            Spacer(Modifier.height(8.dp))
+
+            Text(description, fontSize = 16.sp, color = Color.Gray)
+
+            Spacer(Modifier.height(16.dp))
+
+            // Counter
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxWidth()) {
+                Text("-", fontSize = 28.sp, modifier = Modifier
+                    .clickable { if (quantity > 1) quantity-- }
+                    .padding(16.dp))
+                Text(quantity.toString(), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Text("+", fontSize = 20.sp, modifier = Modifier
+                    .clickable { quantity++ }
+                    .padding(16.dp))
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Button(
+                onClick = { /* Add to order */ },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF4CE14)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().height(56.dp)
+            ) {
+                Text("Add to Order", fontSize = 18.sp, color = Color.Black)
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
