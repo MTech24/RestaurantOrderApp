@@ -1,6 +1,8 @@
 package com.example.restaurantorderapp
 
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -31,12 +33,34 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.core.content.edit
+
+@Composable
+fun HandleRegister(firstName: String, lastName: String, email: String, navController: NavHostController){
+    val context = LocalContext.current
+    val prefs = context.getSharedPreferences("AppData", Context.MODE_PRIVATE)
+    prefs.edit {
+        putString("firstName", firstName)
+        putString("lastName", lastName)
+        putString("email", email)
+    }
+    navController.navigate("home")
+}
 
 @Composable
 fun OnboardingScreen(navController: NavHostController) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
+    var isRegister by remember { mutableStateOf(false) }
+
+    if(isRegister){
+        if(firstName.isNotEmpty() && lastName.isNotEmpty() && email.isNotEmpty()){
+            HandleRegister(firstName, lastName, email, navController)
+        }else {
+            Toast.makeText(LocalContext.current, "Please fill in all fields", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -91,7 +115,7 @@ fun OnboardingScreen(navController: NavHostController) {
 
         // Register button
         Button(
-            onClick = { /* handle register */ },
+            onClick = { isRegister = true },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF4CE14)),
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
