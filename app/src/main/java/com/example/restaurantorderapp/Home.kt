@@ -1,10 +1,13 @@
 package com.example.restaurantorderapp
 
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +23,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
@@ -35,13 +40,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -50,72 +58,97 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(navController: NavHostController) {
-    Column(
+    val focusManager = LocalFocusManager.current
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White)
-        ,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 0.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo",
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier
-                    .padding(vertical = 20.dp)
-                    .width(220.dp)
-            )
-            Icon(imageVector = Icons.Default.Person, contentDescription = "Account", tint = Color(0xFF495E57),
-                modifier = Modifier.width(40.dp).aspectRatio(1f).clickable {navController.navigate("profile")}
-            )
-        }
-
-        Hero()
-
-        val categories = listOf("all","starters", "mains", "desserts", "sides")
-        var selectedCategory by remember { mutableStateOf("all") }
-
-        FilterSection(
-            categories = categories,
-            selected = selectedCategory,
-            onSelect = { selectedCategory = it }
-        )
-
-        Spacer(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color.Gray.copy(alpha = 0.3f))
-        )
-
-        val sampleMenuItems = listOf(
-            Triple("Greek Salad", "Fresh lettuce, tomatoes, cucumbers, olives, and feta cheese.", "$12.99") to R.drawable.hero
-        )
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 80.dp)
-        ) {
-            items(sampleMenuItems) { (info, imageRes) ->
-                MenuItemCard(
-                    name = info.first,
-                    description = info.second,
-                    price = info.third,
-                    imageRes = imageRes
-                )
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ) {
+                focusManager.clearFocus()
             }
-        }
+    )
+    {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.White),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 0.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Account",
+                    tint = Color(0xFF495E57),
+                    modifier = Modifier.width(40.dp).aspectRatio(1f)
+                        .clickable { navController.navigate("profile") }
+                )
 
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "Logo",
+                    contentScale = ContentScale.FillWidth,
+                    modifier = Modifier
+                        .padding(vertical = 20.dp)
+                        .width(220.dp)
+                )
+
+                Spacer(modifier = Modifier.width(40.dp).aspectRatio(1f))
+            }
+
+            Hero()
+
+            val categories = listOf("all", "starters", "mains", "desserts", "sides")
+            var selectedCategory by remember { mutableStateOf("all") }
+
+            FilterSection(
+                categories = categories,
+                selected = selectedCategory,
+                onSelect = { selectedCategory = it }
+            )
+
+            Spacer(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(Color.Gray.copy(alpha = 0.3f))
+            )
+
+            val sampleMenuItems = listOf(
+                Triple(
+                    "Greek Salad",
+                    "Fresh lettuce, tomatoes, cucumbers, olives, and feta cheese.",
+                    "$12.99"
+                ) to R.drawable.hero
+            )
+
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 80.dp)
+            ) {
+                items(sampleMenuItems) { (info, imageRes) ->
+                    MenuItemCard(
+                        name = info.first,
+                        description = info.second,
+                        price = info.third,
+                        imageRes = imageRes
+                    )
+                }
+            }
+
+        }
     }
 }
 
@@ -288,7 +321,8 @@ fun Hero(){
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.Transparent),
+                .background(Color.Transparent)
+            ,
             textStyle = TextStyle(color = Color.White),
             leadingIcon = {
                 Icon(
