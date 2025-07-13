@@ -25,13 +25,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 
 @Composable
-fun OnboardingScreen() {
+fun OnboardingScreen(navController: NavHostController) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -137,5 +139,5 @@ fun InputField(label: String, value: String, onChange: (String) -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun OnboardingPreview(){
-    OnboardingScreen()
+    OnboardingScreen(navController = NavHostController(LocalContext.current))
 }
