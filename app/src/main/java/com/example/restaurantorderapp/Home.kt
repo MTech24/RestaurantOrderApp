@@ -38,6 +38,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -59,15 +60,24 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import coil.compose.AsyncImage
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(navController: NavHostController) {
+fun HomeScreen(navController: NavHostController, menuItems: List<MenuItem>) {
+
+    var filteredItems by remember { mutableStateOf(menuItems) }
+
+    // Update when base data changes (e.g. from DB)
+    LaunchedEffect(menuItems) {
+        filteredItems = menuItems.sortedBy { it.title } // default or last filter
+    }
+
     val focusManager = LocalFocusManager.current
 
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    var selectedItem by remember { mutableStateOf<Pair<String, String>?>(null) } // name, desc
+    var selectedItem by remember { mutableStateOf<Int?>(null) }
     val scope = rememberCoroutineScope()
 
     Box(
@@ -116,13 +126,24 @@ fun HomeScreen(navController: NavHostController) {
 
             Hero()
 
-            val categories = listOf("all", "starters", "mains", "desserts", "sides")
+            val categories = listOf("all", "starters", "mains", "desserts", "drinks")
             var selectedCategory by remember { mutableStateOf("all") }
 
             FilterSection(
                 categories = categories,
                 selected = selectedCategory,
-                onSelect = { selectedCategory = it }
+                onSelect = {
+                    selectedCategory = it
+                    filteredItems = if (it == "all") {
+                        menuItems
+                    } else {
+                        menuItems.filter { menuItem ->
+                            menuItem.category.lowercase() == it.lowercase()
+                        }
+                    }
+                }
+
+
             )
 
             Spacer(
@@ -132,26 +153,19 @@ fun HomeScreen(navController: NavHostController) {
                     .background(Color.Gray.copy(alpha = 0.3f))
             )
 
-            val sampleMenuItems = listOf(
-                Triple(
-                    "Greek Salad",
-                    "Fresh lettuce, tomatoes, cucumbers, olives, and feta cheese.",
-                    "$12.99"
-                ) to R.drawable.hero
-            )
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
-                items(sampleMenuItems) { (info, imageRes) ->
+                items(filteredItems) { menuItem ->
                     MenuItemCard(
-                        name = info.first,
-                        description = info.second,
-                        price = info.third,
-                        imageRes = imageRes,
+                        name = menuItem.title,
+                        description = menuItem.description,
+                        price = menuItem.price,
+                        image = menuItem.image,
                         onClick = {
-                            selectedItem = Pair(info.first, info.second)
+                            selectedItem = menuItem.id
                             scope.launch { sheetState.show() }
                         }
                     )
@@ -167,13 +181,16 @@ fun HomeScreen(navController: NavHostController) {
             sheetState = sheetState,
             modifier = Modifier.fillMaxWidth(),
             containerColor = Color.White,
-            scrimColor = Color.Black.copy(alpha = 0.5f),
+            scrimColor = Color.Black.copy(alpha = 0.6f),
             dragHandle = { } // You can customize drag handle or leave it empty
         ) {
+            val current = menuItems.find { it.id == selectedItem }
+
             MenuItemDetailsModal(
-                name = selectedItem!!.first,
-                description = selectedItem!!.second,
-                imageRes = R.drawable.hero, // or pass dynamically
+                name = current!!.title,
+                description = current.description,
+                price = current.price,
+                image = current.image,
             )
         }
     }
@@ -184,14 +201,15 @@ fun MenuItemCard(
     name: String,
     description: String,
     price: String,
-    imageRes: Int,
+    image: String,
     onClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
-            .clickable{onClick()},
+            .clickable{onClick()}
+            ,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
@@ -217,15 +235,15 @@ fun MenuItemCard(
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = price,
+                text = "$$price",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF495E57)
             )
         }
 
-        Image(
-            painter = painterResource(id = imageRes),
+        AsyncImage(
+            model = image,
             contentDescription = "Menu item image",
             modifier = Modifier
                 .size(100.dp)
@@ -239,7 +257,8 @@ fun MenuItemCard(
 fun MenuItemDetailsModal(
     name: String,
     description: String,
-    imageRes: Int
+    price: String,
+    image: String
 ) {
     var quantity by remember { mutableIntStateOf(1) }
 
@@ -247,9 +266,9 @@ fun MenuItemDetailsModal(
         Column {
 
             // Large image
-            Image(
-                painter = painterResource(id = imageRes),
-                contentDescription = name,
+            AsyncImage(
+                model = image,
+                contentDescription = null,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
@@ -264,6 +283,10 @@ fun MenuItemDetailsModal(
             Spacer(Modifier.height(8.dp))
 
             Text(description, fontSize = 16.sp, color = Color.Gray)
+
+            Spacer(Modifier.height(16.dp))
+
+            Text("$$price", fontSize = 24.sp, fontWeight = FontWeight.Bold)
 
             Spacer(Modifier.height(16.dp))
 
@@ -436,5 +459,5 @@ fun Hero(){
 @Preview(showBackground = true)
 @Composable
 fun HomeScreenPreview(){
-    HomeScreen(navController = NavHostController(LocalContext.current))
+    HomeScreen(navController = NavHostController(LocalContext.current), emptyList())
 }

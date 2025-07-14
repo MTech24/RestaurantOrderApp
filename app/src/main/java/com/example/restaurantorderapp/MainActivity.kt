@@ -36,6 +36,9 @@ class MainActivity : ComponentActivity() {
                 val db = AppDatabase.getInstance(applicationContext)
                 val menuDao = db.menuDao()
 
+                val itemsFromDbFirst = menuDao.getAll()
+                menuItemsState.value = itemsFromDbFirst
+
                 try {
                     val response = client.get("https://mtech24.cz/restaurant-app-api/menu/").bodyAsText()
 
@@ -56,7 +59,7 @@ class MainActivity : ComponentActivity() {
                     menuItemsState.value = itemsFromDb
 
                 } catch (e: Exception) {
-                    Log.e("API_ERROR", "Failed to fetch data: ${e.message}", e)
+                    Log.i("API_ERROR", "Failed to fetch data: ${e.message}")
                     // Do nothing with DB if network or parsing fails
 
                     // On error, still try to load whatever is in DB
@@ -79,7 +82,7 @@ class MainActivity : ComponentActivity() {
 
                 NavHost(navController = navController, startDestination = startDestination) {
                     composable("home") {
-                        HomeScreen(navController)
+                        HomeScreen(navController, menuItemsState.value)
                     }
                     composable("profile") {
                         OnboardingScreen(navController)
