@@ -16,9 +16,12 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.*
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 class MainActivity : ComponentActivity() {
     private val client = HttpClient(CIO)
+    private val gson = Gson()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +30,14 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 try {
                     val response = client.get("https://mtech24.cz/restaurant-app-api/menu/").bodyAsText()
-                    Log.d("API_RESPONSE", response)
+
+                    val menuItemType = object : TypeToken<List<MenuItem>>() {}.type
+                    val menuItems: List<MenuItem> = Gson().fromJson(response, menuItemType)
+
+                    menuItems.forEach {
+                        Log.d("MENU_ITEM", "${it.title}: ${it.price}")
+                    }
+
                 } catch (e: Exception) {
                     Log.e("API_ERROR", "Failed to fetch data: ${e.message}", e)
                 }
@@ -58,3 +68,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+data class MenuItem(
+    val id: Int,
+    val title: String,
+    val description: String,
+    val price: String,
+    val image: String,
+    val category: String
+)
