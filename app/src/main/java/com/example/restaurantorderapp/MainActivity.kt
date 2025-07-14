@@ -7,6 +7,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -27,19 +29,39 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            // State holding the list of MenuItem, initially empty
+            val menuItemsState = remember { mutableStateOf<List<MenuItem>>(emptyList()) }
+
             LaunchedEffect(Unit) {
+                val db = AppDatabase.getInstance(applicationContext)
+                val menuDao = db.menuDao()
+
                 try {
                     val response = client.get("https://mtech24.cz/restaurant-app-api/menu/").bodyAsText()
 
                     val menuItemType = object : TypeToken<List<MenuItem>>() {}.type
-                    val menuItems: List<MenuItem> = Gson().fromJson(response, menuItemType)
+                    val menuItems: List<MenuItem> = gson.fromJson(response, menuItemType)
 
+                    // Log for debug
                     menuItems.forEach {
                         Log.d("MENU_ITEM", "${it.title}: ${it.price}")
                     }
 
+                    // Save to DB: delete all then insert new
+                    menuDao.deleteAll()
+                    menuDao.insertAll(menuItems)
+
+                    // After insert, read fresh data from DB and update Compose state
+                    val itemsFromDb = menuDao.getAll()
+                    menuItemsState.value = itemsFromDb
+
                 } catch (e: Exception) {
                     Log.e("API_ERROR", "Failed to fetch data: ${e.message}", e)
+                    // Do nothing with DB if network or parsing fails
+
+                    // On error, still try to load whatever is in DB
+                    val itemsFromDb = menuDao.getAll()
+                    menuItemsState.value = itemsFromDb
                 }
             }
 
@@ -67,12 +89,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-data class MenuItem(
-    val id: Int,
-    val title: String,
-    val description: String,
-    val price: String,
-    val image: String,
-    val category: String
-)
