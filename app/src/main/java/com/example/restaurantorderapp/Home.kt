@@ -38,7 +38,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -67,12 +67,26 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(navController: NavHostController, menuItems: List<MenuItem>) {
 
-    var filteredItems by remember { mutableStateOf(menuItems) }
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedCategory by remember { mutableStateOf("all") }
+
+    val filteredItems by remember(menuItems, searchQuery, selectedCategory) {
+        derivedStateOf {
+            menuItems
+                .filter { item ->
+                    selectedCategory == "all" || item.category.equals(selectedCategory, ignoreCase = true)
+                }
+                .filter { item ->
+                    item.title.contains(searchQuery, ignoreCase = true)
+                }
+                .sortedBy { it.title } // Optional default sort
+        }
+    }
 
     // Update when base data changes (e.g. from DB)
-    LaunchedEffect(menuItems) {
+    /*LaunchedEffect(menuItems) {
         filteredItems = menuItems.sortedBy { it.title } // default or last filter
-    }
+    }*/
 
     val focusManager = LocalFocusManager.current
 
@@ -124,23 +138,21 @@ fun HomeScreen(navController: NavHostController, menuItems: List<MenuItem>) {
                 Spacer(modifier = Modifier.width(40.dp).aspectRatio(1f))
             }
 
-            Hero()
+            Hero(
+                onInputChanged = {
+                    searchQuery = it
+                }
+            )
 
             val categories = listOf("all", "starters", "mains", "desserts", "drinks")
-            var selectedCategory by remember { mutableStateOf("all") }
+
 
             FilterSection(
                 categories = categories,
                 selected = selectedCategory,
                 onSelect = {
+
                     selectedCategory = it
-                    filteredItems = if (it == "all") {
-                        menuItems
-                    } else {
-                        menuItems.filter { menuItem ->
-                            menuItem.category.lowercase() == it.lowercase()
-                        }
-                    }
                 }
 
 
@@ -367,7 +379,11 @@ fun FilterSection(
 }
 
 @Composable
-fun Hero(){
+fun Hero(
+    onInputChanged: (String) -> Unit
+){
+    val searchText = remember { mutableStateOf("") }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -425,8 +441,9 @@ fun Hero(){
 
         // Styled Search Input
         OutlinedTextField(
-            value = "",
-            onValueChange = { /**/ },
+            value = searchText.value,
+            onValueChange = { searchText.value = it
+                                onInputChanged(searchText.value) },
             placeholder = { Text("Search...") },
             singleLine = true,
             shape = RoundedCornerShape(12.dp),

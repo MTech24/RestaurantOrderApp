@@ -13,13 +13,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.restaurantorderapp.ui.theme.RestaurantOrderAppTheme
-import io.ktor.client.*
-import io.ktor.client.engine.cio.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.bodyAsText
-import kotlinx.coroutines.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
 
 class MainActivity : ComponentActivity() {
     private val client = HttpClient(CIO)
